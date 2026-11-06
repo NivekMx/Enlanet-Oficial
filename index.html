@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enlanet - Internet de fibra óptica para tu hogar</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+  /* AQUÍ VA LA PARTE 1 (CSS) */
+  /* ========== 1. VARIABLES DE COLOR ========== */
+:root{
+  --azul-marino:#093D65;
+  --turquesa:#1DA8C1;
+  --turquesa-claro:#62C6D5;
+  --aqua:#95D2D2;
+  --crema:#FEF8E9;
+  --texto:#1e293b;
+  --gris:#64748b;
+  --borde:#e2e8f0;
+  --sombra:0 10px 30px rgba(9,61,101,.15);
+}
+
+/* ========== 2. ESTILOS BASE ========== */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Poppins',sans-serif;background:var(--crema);color:var(--texto);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none}
+input,select,textarea{font-family:inherit}
+.contenedor{max-width:1150px;margin:0 auto;padding:0 20px}
+
+#barra-scroll{position:fixed;top:0;left:0;height:4px;width:0;background:linear-gradient(90deg,var(--turquesa),var(--aqua));z-index:100;transition:width .1s linear}
+
+/* ========== 3. NAVEGACIÓN ========== */
+nav.barra{position:sticky;top:0;z-index:50;background:rgba(254,248,233,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(149,210,210,.4);transition:box-shadow .3s}
+nav.barra.con-sombra{box-shadow:0 4px 20px rgba(9,61,101,.12)}
+.barra-interna{height:78px;display:flex;align-items:center;justify-content:space-between}
+.logo svg{height:40px;width:auto;transition:transform .3s}
+.logo:hover svg{transform:scale(1.06) rotate(-1deg)}
+.menu{display:flex;gap:6px}
+.menu a{position:relative;padding:8px 14px;font-size:.9rem;font-weight:500;color:var(--azul-marino);border-radius:8px;transition:color .25s,background .25s}
+.menu a::after{content:"";position:absolute;left:50%;bottom:2px;width:0;height:2px;background:var(--turquesa);transition:width .3s,left .3s}
+.menu a:hover{color:var(--turquesa)}
+.menu a:hover::after,.menu a.activo::after{width:60%;left:20%}
+.menu a.activo{color:var(--turquesa);font-weight:600}
+.btn-menu{display:none;background:none;font-size:1.8rem;color:var(--azul-marino)}
+
+/* ========== 4. BOTONES ========== */
+.btn{position:relative;overflow:hidden;display:inline-block;padding:13px 30px;border-radius:12px;font-weight:600;font-size:.92rem;transition:transform .25s,box-shadow .25s,background .25s,filter .25s}
+.btn:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 12px 24px rgba(9,61,101,.28)}
+.btn:active{transform:translateY(-1px) scale(.97)}
+.btn:focus-visible{outline:3px solid var(--aqua);outline-offset:3px}
+.btn-turquesa{background:var(--turquesa);color:#fff}
+.btn-turquesa:hover{background:var(--turquesa-claro)}
+.btn-marino{background:var(--azul-marino);color:#fff}
+.btn-borde{background:rgba(9,61,101,.55);color:#fff;border:2px solid #fff}
+.btn-borde:hover{background:var(--azul-marino)}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.55);transform:scale(0);animation:ripple .6s linear;pointer-events:none}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+/* ========== 5. CAMBIO ENTRE SECCIONES ========== */
+.vista{display:none;flex:1;flex-direction:column}
+.vista.activa{display:flex;animation:entrarVista .6s ease both}
+@keyframes entrarVista{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(35px);transition:opacity .8s ease,transform .8s ease}
+.reveal.visible{opacity:1;transform:none}
+.retraso-1{transition-delay:.12s}
+.retraso-2{transition-delay:.24s}
+.retraso-3{transition-delay:.36s}
+
+/* ========== 6. HERO Y CABECERAS ========== */
+.hero{position:relative;overflow:hidden;color:#fff;text-align:center;padding:110px 20px 120px;background:var(--azul-marino)}
+.hero-fondo{position:absolute;inset:0;opacity:.35;background:url('https://images.unsplash.com/photo-1544717297-fa95b6ee9643?auto=format&fit=crop&w=1600&q=80') center/cover;animation:zoomLento 25s ease-in-out infinite alternate}
+@keyframes zoomLento{from{transform:scale(1)}to{transform:scale(1.12)}}
+.burbuja{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(29,168,193,.55),transparent 70%);animation:flotar 9s ease-in-out infinite}
+.burbuja:nth-child(2){width:260px;height:260px;left:8%;top:12%}
+.burbuja:nth-child(3){width:340px;height:340px;right:6%;bottom:-10%;animation-delay:-3s}
+.burbuja:nth-child(4){width:160px;height:160px;right:30%;top:8%;animation-delay:-6s}
+@keyframes flotar{0%,100%{transform:translate(0,0)}50%{transform:translate(25px,-35px)}}
+.hero-contenido{position:relative;z-index:2;max-width:850px;margin:0 auto}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:800;line-height:1.15;letter-spacing:-1px}
+.hero p.sub{margin-top:14px;font-size:1.15rem;font-weight:300;color:var(--aqua)}
+.maquina{display:inline-block;border-right:3px solid var(--aqua);padding-right:4px;animation:parpadeo .8s step-end infinite}
+@keyframes parpadeo{50%{border-color:transparent}}
+.hero-botones{margin-top:34px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.onda{position:absolute;bottom:-1px;left:0;width:100%;line-height:0;z-index:2}
+
+.cabecera{background:var(--azul-marino);color:#fff;text-align:center;padding:55px 20px;position:relative;overflow:hidden}
+.cabecera::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-120px;top:-200px;background:radial-gradient(circle,rgba(29,168,193,.45),transparent 70%);animation:flotar 10s ease-in-out infinite}
+.cabecera h1{position:relative;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700}
+.cabecera p{position:relative;margin-top:6px;color:var(--aqua)}
+
+/* ========== 7. INICIO: PASOS Y ACCIONES ========== */
+.dividido{display:grid;grid-template-columns:1fr 1fr}
+.panel{position:relative;color:#fff;padding:70px 40px;min-height:440px;display:flex;flex-direction:column;justify-content:space-between;background-size:cover;background-position:center}
+.panel h2{text-align:center;font-size:1.9rem;margin-bottom:30px}
+.panel-1{background-image:linear-gradient(rgba(9,61,101,.82),rgba(9,61,101,.75)),url('https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1000&q=80')}
+.panel-2{background-image:linear-gradient(rgba(29,168,193,.9),rgba(29,168,193,.88)),url('https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=1000&q=80')}
+.panel .lista{max-width:420px;margin:0 auto 30px;width:100%}
+.paso{display:flex;align-items:center;gap:12px;margin-bottom:14px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:50px;padding:10px 18px;transition:transform .3s,background .3s}
+.paso:hover{transform:translateX(10px);background:rgba(255,255,255,.22)}
+.paso b{width:30px;height:30px;border-radius:50%;background:var(--turquesa);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.beneficio{display:flex;align-items:center;gap:14px;margin-bottom:18px;font-size:1.05rem;font-weight:500;transition:transform .3s}
+.beneficio:hover{transform:translateX(10px)}
+.beneficio i{font-style:normal;width:30px;height:30px;border-radius:50%;background:var(--azul-marino);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;animation:latido 2.4s ease-in-out infinite}
+@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.centrado{text-align:center}
+
+.accion{position:relative;color:#fff;text-align:center;padding:75px 20px;background-size:cover;background-position:center;overflow:hidden}
+.accion-1{background-image:linear-gradient(rgba(9,61,101,.92),rgba(9,61,101,.88)),url('https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1200&q=80')}
+.accion-2{background-image:linear-gradient(rgba(29,168,193,.92),rgba(29,168,193,.87)),url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80')}
+.etiqueta{display:inline-block;font-size:.7rem;font-weight:700;padding:5px 14px;border-radius:50px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.accion-1 .etiqueta{background:rgba(29,168,193,.3);color:var(--aqua)}
+.accion-2 .etiqueta{background:rgba(9,61,101,.4);color:#fff}
+.accion h2{font-size:2rem;margin-bottom:6px}
+.accion p{font-size:.92rem;margin-bottom:22px;opacity:.9}
+
+/* ========== 8. PLANES ========== */
+.seccion{padding:70px 0;flex:1}
+.titulo-seccion{text-align:center;margin-bottom:44px}
+.titulo-seccion .etiqueta-chica{display:inline-block;background:rgba(29,168,193,.2);color:var(--azul-marino);font-size:.72rem;font-weight:700;padding:6px 16px;border-radius:50px;text-transform:uppercase;letter-spacing:1px}
+.titulo-seccion h2{font-size:clamp(1.5rem,3vw,2.1rem);color:var(--azul-marino);margin-top:12px}
+.rejilla-planes{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;padding-top:16px}
+.plan{position:relative;background:#fff;border:1px solid var(--borde);border-radius:22px;padding:34px 28px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--sombra);transition:transform .35s,box-shadow .35s;transform-style:preserve-3d}
+.plan:hover{transform:translateY(-12px);box-shadow:0 25px 45px rgba(9,61,101,.25)}
+.plan.popular{background:var(--azul-marino);color:#fff;border:2px solid var(--turquesa)}
+.insignia{position:absolute;top:-15px;left:50%;transform:translateX(-50%);background:var(--turquesa);color:#fff;font-size:.65rem;font-weight:700;padding:5px 14px;border-radius:50px;text-transform:uppercase;letter-spacing:1px;animation:latido 2s ease-in-out infinite}
+.plan .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:4px 12px;border-radius:50px;background:rgba(29,168,193,.12);color:var(--turquesa);text-transform:uppercase;letter-spacing:1px}
+.plan h3{font-size:1.7rem;margin-top:8px;color:var(--azul-marino)}
+.plan.popular h3{color:#fff}
+.plan .desc{font-size:.78rem;color:var(--gris);margin-top:4px}
+.plan.popular .desc{color:#cbd5e1}
+.plan .vel{text-align:center;padding:20px 0;margin:20px 0;border-top:1px solid var(--borde);border-bottom:1px solid var(--borde)}
+.plan.popular .vel{border-color:rgba(255,255,255,.15)}
+.plan .vel strong{font-size:2.8rem;font-weight:800;color:var(--azul-marino)}
+.plan.popular .vel strong{color:#fff}
+.plan .vel small{font-size:1.1rem;color:var(--gris);margin-left:4px}
+.plan.popular .vel small{color:var(--turquesa)}
+.barra-vel{height:8px;border-radius:8px;background:rgba(148,163,184,.25);margin-top:14px;overflow:hidden}
+.barra-vel span{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,var(--turquesa),var(--aqua));transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.plan .precio{font-size:2rem;font-weight:700;color:var(--turquesa);margin-top:16px}
+.plan .precio small{font-size:.75rem;font-weight:400;color:var(--gris)}
+.plan .btn{display:block;text-align:center;width:100%;margin-top:22px}
+.nota-simetrica{max-width:700px;margin:50px auto 0;text-align:center;background:#fff;border-radius:18px;padding:22px;border:1px dashed var(--turquesa);font-size:.9rem;color:var(--azul-marino)}
+
+/* ========== 9. COBERTURA Y KML ========== */
+.caja-mapa{background:#fff;border-radius:24px;padding:8px;box-shadow:var(--sombra);border:1px solid var(--borde)}
+#mapa-cobertura{height:520px;width:100%;border-radius:18px;z-index:1}
+.panel-kml{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-bottom:26px}
+.zona-arrastre{background:#fff;border:2px dashed var(--turquesa);border-radius:20px;padding:30px 22px;text-align:center;cursor:pointer;transition:background .3s,transform .3s,border-color .3s}
+.zona-arrastre:hover,.zona-arrastre.arrastrando{background:rgba(29,168,193,.08);transform:scale(1.02);border-color:var(--azul-marino)}
+.zona-arrastre .icono{font-size:2.4rem;display:block;animation:rebote 2.2s ease-in-out infinite}
+@keyframes rebote{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.zona-arrastre h3{color:var(--azul-marino);margin-top:6px}
+.zona-arrastre p{font-size:.8rem;color:var(--gris);margin-top:4px}
+.zona-arrastre .nombre-archivo{margin-top:10px;font-weight:600;color:var(--turquesa);font-size:.82rem;word-break:break-all}
+.info-zonas{background:#fff;border-radius:20px;padding:22px;border:1px solid var(--borde);box-shadow:var(--sombra)}
+.info-zonas h3{color:var(--azul-marino);font-size:1rem;margin-bottom:10px}
+.lista-zonas{list-style:none;max-height:160px;overflow-y:auto}
+.lista-zonas li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:.84rem;cursor:pointer;transition:background .2s,transform .2s}
+.lista-zonas li:hover{background:rgba(29,168,193,.12);transform:translateX(6px)}
+.lista-zonas li::before{content:"";width:12px;height:12px;border-radius:4px;background:var(--turquesa);flex-shrink:0}
+.vacio{color:var(--gris);font-size:.82rem;font-style:italic}
+.acciones-kml{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn-chico{padding:9px 16px;font-size:.78rem;border-radius:10px}
+.btn-claro{background:rgba(9,61,101,.08);color:var(--azul-marino)}
+.btn-claro:hover{background:rgba(9,61,101,.16)}
+.consejo-mapa{margin-top:14px;font-size:.8rem;color:var(--gris);text-align:center}
+.pulso{width:18px;height:18px;border-radius:50%;background:var(--turquesa);border:3px solid #fff;box-shadow:0 0 0 0 rgba(29,168,193,.7);animation:pulso 1.6s infinite}
+@keyframes pulso{70%{box-shadow:0 0 0 22px rgba(29,168,193,0)}100%{box-shadow:0 0 0 0 rgba(29,168,193,0)}}
+
+/* ========== COBERTURA Y KML ========== */
+.cob-panel{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-bottom:26px}
+
+/* Caja para arrastrar o elegir el archivo */
+.cob-arrastre{
+  display:block;background:#fff;border:2px dashed #1DA8C1;border-radius:20px;
+  padding:30px 22px;text-align:center;cursor:pointer;
+  transition:background .3s,transform .3s,border-color .3s;
+}
+.cob-arrastre:hover,.cob-arrastre.arrastrando{background:rgba(29,168,193,.08);transform:scale(1.02);border-color:#093D65}
+.cob-arrastre .icono{font-size:2.4rem;display:block;animation:cobRebote 2.2s ease-in-out infinite}
+@keyframes cobRebote{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.cob-arrastre h3{color:#093D65;margin-top:6px}
+.cob-arrastre p{font-size:.8rem;color:#64748b;margin-top:4px}
+.cob-archivo{margin-top:10px;font-weight:600;color:#1DA8C1;font-size:.82rem;word-break:break-all}
+
+/* Lista de zonas cargadas */
+.cob-info{background:#fff;border-radius:20px;padding:22px;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(9,61,101,.15)}
+.cob-info h3{color:#093D65;font-size:1rem;margin-bottom:10px}
+.cob-lista{list-style:none;max-height:160px;overflow-y:auto}
+.cob-lista li{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;
+  font-size:.84rem;cursor:pointer;transition:background .2s,transform .2s;
+}
+.cob-lista li:hover{background:rgba(29,168,193,.12);transform:translateX(6px)}
+.cob-lista li::before{content:"";width:12px;height:12px;border-radius:4px;background:#1DA8C1;border:2px solid #093D65;flex-shrink:0}
+.cob-vacio{color:#64748b;font-size:.82rem;font-style:italic}
+.cob-botones{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.cob-btn{
+  background:rgba(9,61,101,.08);color:#093D65;padding:9px 16px;font-size:.78rem;font-weight:600;
+  border:none;border-radius:10px;cursor:pointer;font-family:inherit;
+  transition:background .25s,transform .25s;
+}
+.cob-btn:hover{background:rgba(9,61,101,.16);transform:translateY(-2px)}
+
+/* El mapa */
+.cob-caja{background:#fff;border-radius:24px;padding:8px;box-shadow:0 10px 30px rgba(9,61,101,.15);border:1px solid #e2e8f0}
+#mapa-cobertura{
+  height:560px;width:100%;border-radius:18px;
+  position:relative;z-index:1;isolation:isolate;   /* evita que el mapa tape la barra de navegación */
+  background:#e8eef2;
+}
+.cob-consejo{margin-top:14px;font-size:.8rem;color:#64748b;text-align:center}
+
+/* Detalles bonitos del mapa */
+.leaflet-popup-content-wrapper{border-radius:14px;font-family:'Poppins',sans-serif}
+.leaflet-tooltip{border-radius:8px;border:none;font-family:'Poppins',sans-serif;font-weight:600;color:#093D65}
+.cob-leyenda{
+  background:#fff;padding:8px 12px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  font:600 .72rem 'Poppins',sans-serif;color:#093D65;display:flex;align-items:center;gap:8px;
+}
+.cob-leyenda i{width:16px;height:16px;border-radius:4px;background:rgba(29,168,193,.4);border:3px solid #093D65;display:inline-block}
+.cob-pulso{width:18px;height:18px;border-radius:50%;background:#1DA8C1;border:3px solid #fff;box-shadow:0 0 0 0 rgba(29,168,193,.7);animation:cobPulso 1.6s infinite}
+@keyframes cobPulso{70%{box-shadow:0 0 0 22px rgba(29,168,193,0)}100%{box-shadow:0 0 0 0 rgba(29,168,193,0)}}
+
+@media (max-width:900px){
+  .cob-panel{grid-template-columns:1fr}
+  #mapa-cobertura{height:420px}
+}
+
+/* ========== 11. SOPORTE ========== */
+.tarjeta{background:#fff;border:1px solid var(--borde);border-radius:26px;box-shadow:var(--sombra);padding:36px;margin-bottom:34px}
+.tarjeta .encabezado{text-align:center;margin-bottom:22px}
+.tarjeta .encabezado .etq{background:rgba(29,168,193,.15);color:var(--turquesa);font-size:.7rem;font-weight:700;padding:5px 14px;border-radius:50px;text-transform:uppercase;letter-spacing:1px}
+.tarjeta .encabezado h2{color:var(--azul-marino);margin-top:10px;font-size:1.5rem}
+.tarjeta .encabezado p{font-size:.78rem;color:var(--gris);margin-top:4px}
+.fila-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.verificado{display:none;margin-top:14px;text-align:center;font-size:.82rem;font-weight:600;color:#059669;background:#ecfdf5;border-radius:12px;padding:10px;animation:aparecer .5s}
+.faq{margin-top:10px}
+.faq details{background:#fff;border:1px solid var(--borde);border-radius:14px;margin-bottom:10px;padding:14px 18px;transition:box-shadow .3s}
+.faq details:hover{box-shadow:var(--sombra)}
+.faq summary{font-weight:600;font-size:.88rem;color:var(--azul-marino);cursor:pointer}
+.faq details p{font-size:.82rem;color:var(--gris);margin-top:8px;line-height:1.6;animation:deslizar .4s}
+
+/* ========== 12. PIE DE PÁGINA ========== */
+footer{background:var(--azul-marino);color:#fff;padding:55px 0 22px;border-top:1px solid rgba(29,168,193,.3);margin-top:auto}
+.pie-rejilla{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;padding-bottom:34px;border-bottom:1px solid rgba(255,255,255,.1)}
+footer h4{font-size:.9rem;margin-bottom:12px}
+footer ul{list-style:none;font-size:.78rem;color:#cbd5e1}
+footer li{margin-bottom:8px}
+footer a{transition:color .25s,padding-left .25s;cursor:pointer}
+footer a:hover{color:var(--aqua);padding-left:6px}
+footer .legal{text-align:center;font-size:.75rem;color:#94a3b8;padding-top:20px}
+
+/* ========== 13. CHAT ========== */
+#chat-ventana{position:fixed;bottom:100px;right:22px;z-index:70;width:360px;max-width:calc(100vw - 30px);background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.3);border:1px solid var(--borde);display:flex;flex-direction:column;opacity:0;transform:translateY(30px) scale(.9);pointer-events:none;transform-origin:bottom right;transition:opacity .3s,transform .35s cubic-bezier(.2,1.2,.4,1)}
+#chat-ventana.abierto{opacity:1;transform:none;pointer-events:auto}
+.chat-cab{background:var(--azul-marino);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.chat-cab .quien{display:flex;gap:10px;align-items:center}
+.avatar{position:relative;width:40px;height:40px;border-radius:50%;background:var(--turquesa);display:flex;align-items:center;justify-content:center}
+.avatar svg{width:24px;height:24px;fill:#fff}
+.avatar::after{content:"";position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:#10b981;border:2px solid var(--azul-marino)}
+.chat-cab h3{font-size:.85rem}
+.chat-cab small{font-size:.65rem;color:var(--aqua)}
+.chat-cab button{background:none;color:#fff;font-size:1.5rem}
+#chat-cuerpo{background:#f8fafc;padding:16px;height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:.78rem;line-height:1.55;animation:aparecerMsg .35s ease both}
+@keyframes aparecerMsg{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.msg.bot{background:var(--turquesa);color:#fff;border-top-left-radius:2px;align-self:flex-start}
+.msg.yo{background:#e2e8f0;color:var(--texto);border-top-right-radius:2px;align-self:flex-end}
+.opciones{display:flex;flex-wrap:wrap;gap:6px}
+.opciones button{background:#fff;color:var(--azul-marino);border:1px solid var(--turquesa);border-radius:50px;padding:6px 12px;font-size:.72rem;font-weight:500;transition:background .25s,color .25s,transform .25s}
+.opciones button:hover{background:var(--turquesa);color:#fff;transform:translateY(-2px)}
+.escribiendo{display:flex;gap:4px;padding:12px 14px}
+.escribiendo i{width:7px;height:7px;border-radius:50%;background:#fff;animation:punto 1s infinite}
+.escribiendo i:nth-child(2){animation-delay:.15s}
+.escribiendo i:nth-child(3){animation-delay:.3s}
+@keyframes punto{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-6px);opacity:1}}
+.chat-pie{padding:10px;border-top:1px solid var(--borde);background:#fff}
+.chat-pie form{display:flex;background:#f1f5f9;border-radius:12px;border:1px solid var(--borde);padding:4px 4px 4px 12px}
+.chat-pie input{flex:1;background:none;border:none;outline:none;font-size:.78rem}
+.chat-pie button{background:var(--turquesa);color:#fff;border-radius:9px;padding:6px 12px;font-size:.78rem;transition:background .2s}
+.chat-pie button:hover{background:var(--azul-marino)}
+
+#chat-flotante{position:fixed;bottom:22px;right:22px;z-index:70;display:flex;flex-direction:column;align-items:flex-end}
+.globo{position:relative;background:#fff;border:1px solid var(--borde);border-radius:16px;padding:9px 30px 9px 14px;font-size:.76rem;margin-bottom:8px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.1);animation:flotarGlobo 3s ease-in-out infinite;transition:border-color .3s}
+.globo:hover{border-color:var(--turquesa)}
+.globo .x{position:absolute;top:2px;right:8px;background:none;color:#94a3b8;font-size:1rem;font-weight:700}
+@keyframes flotarGlobo{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.boton-bot{position:relative}
+.boton-bot button.circulo{width:64px;height:64px;border-radius:50%;background:var(--crema);border:2px solid var(--azul-marino);box-shadow:0 10px 25px rgba(9,61,101,.3);display:flex;align-items:center;justify-content:center;transition:transform .3s}
+.boton-bot button.circulo:hover{transform:scale(1.12) rotate(-6deg)}
+.boton-bot svg{width:32px;height:32px;fill:var(--azul-marino)}
+.boton-bot .aviso{position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#f43f5e;color:#fff;font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;pointer-events:none;animation:latido 1.6s infinite}
+
+#subir{position:fixed;bottom:22px;left:22px;z-index:60;width:46px;height:46px;border-radius:50%;background:var(--azul-marino);color:#fff;font-size:1.2rem;box-shadow:var(--sombra);opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .3s,transform .3s,background .3s}
+#subir.ver{opacity:1;transform:none;pointer-events:auto}
+#subir:hover{background:var(--turquesa)}
+
+#avisos{position:fixed;top:92px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.aviso-toast{background:#fff;border-left:5px solid var(--turquesa);box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px 18px;border-radius:12px;font-size:.82rem;max-width:320px;animation:entrarToast .45s cubic-bezier(.2,1.2,.4,1) both}
+.aviso-toast.error{border-color:#f43f5e}
+.aviso-toast.saliendo{animation:salirToast .4s ease forwards}
+@keyframes entrarToast{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes salirToast{to{opacity:0;transform:translateX(60px)}}
+
+/* ========== 14. CELULAR Y TABLET ========== */
+@media (max-width:900px){
+  .menu{position:absolute;top:78px;left:0;right:0;background:var(--crema);flex-direction:column;padding:10px 20px 20px;border-bottom:1px solid var(--aqua);box-shadow:0 12px 20px rgba(9,61,101,.12);max-height:0;overflow:hidden;padding-top:0;padding-bottom:0;opacity:0;transition:max-height .4s,opacity .3s,padding .3s}
+  .menu.abierto{max-height:400px;opacity:1;padding-top:10px;padding-bottom:20px}
+  .btn-menu{display:block}
+  .dividido,.rejilla-planes,.panel-kml,.banner-1,.banner-2,.pie-rejilla,.fila-3{grid-template-columns:1fr}
+  .pasos-proceso{grid-template-columns:1fr 1fr}
+  .contacto-lado{border-left:none;border-top:1px solid rgba(255,255,255,.1)}
+  #mapa-cobertura{height:400px}
+  .panel{padding:50px 24px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+
+<body>
+  <!-- AQUÍ VAN LAS PARTES 2, 3, 4, 5, 6 y 7 (HTML), una tras otra -->
+<div id="barra-scroll"></div>
+<div id="avisos"></div>
+
+<!-- BARRA DE NAVEGACIÓN -->
+<nav class="barra" id="barra">
+  <div class="contenedor barra-interna">
+
+    <a href="#inicio" class="logo" aria-label="Ir al inicio">
+      <svg viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradLogo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1DA8C1"/><stop offset="100%" stop-color="#093D65"/>
+          </linearGradient>
+        </defs>
+        <path d="M 12 52 L 28 32 L 36 40 L 20 60 Z" fill="url(#gradLogo)"/>
+        <path d="M 28 20 L 44 40 L 36 48 L 20 28 Z" fill="#1DA8C1"/>
+        <text x="52" y="58" font-family="Poppins, sans-serif" font-size="44" font-weight="700" fill="#1DA8C1" letter-spacing="-1">enlanet</text>
+        <text x="185" y="24" font-family="Poppins, sans-serif" font-size="16" font-weight="600" fill="#1DA8C1">Internet</text>
+      </svg>
+    </a>
+
+    <div class="menu" id="menu">
+      <a href="#inicio" data-link="inicio">Inicio</a>
+      <a href="#planes" data-link="planes">Planes</a>
+      <a href="#cobertura" data-link="cobertura">Cobertura</a>
+      <a href="#solicitar" data-link="solicitar">Solicitar instalación</a>
+      <a href="#soporte" data-link="soporte">Soporte</a>
+    </div>
+
+    <button class="btn-menu" id="btn-menu" aria-label="Abrir menú">☰</button>
+  </div>
+</nav>
+
+
+<!-- VISTA 1: INICIO -->
+<main class="vista activa" id="vista-inicio">
+
+  <header class="hero">
+    <div class="hero-fondo"></div>
+    <div class="burbuja"></div><div class="burbuja"></div><div class="burbuja"></div>
+    <div class="hero-contenido">
+      <h1 class="reveal">Internet de fibra óptica para tu hogar</h1>
+      <p class="sub reveal retraso-1">Instalación rápida y soporte <span class="maquina" id="maquina"></span></p>
+      <div class="hero-botones reveal retraso-2">
+        <a href="#planes" class="btn btn-turquesa">Ver planes</a>
+        <a href="#solicitar" class="btn btn-borde">Solicitar instalación</a>
+      </div>
+    </div>
+    <div class="onda">
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" width="100%" height="60"><path fill="#FEF8E9" d="M0,40 C240,90 480,0 720,30 C960,60 1200,90 1440,30 L1440,80 L0,80 Z"/></svg>
+    </div>
+  </header>
+
+  <section class="dividido">
+    <div class="panel panel-1">
+      <div>
+        <h2 class="reveal">Así de fácil es tener Enlanet</h2>
+        <div class="lista">
+          <div class="paso reveal"><b>1</b><span>Agenda tu visita</span></div>
+          <div class="paso reveal retraso-1"><b>2</b><span>Conectamos tu hogar</span></div>
+          <div class="paso reveal retraso-2"><b>3</b><span>Empieza a navegar</span></div>
+        </div>
+      </div>
+      <div class="centrado"><a href="#cobertura" class="btn btn-borde">Zonas de cobertura</a></div>
+    </div>
+
+    <div class="panel panel-2">
+      <div>
+        <h2 class="reveal">Conéctate mejor</h2>
+        <div class="lista">
+          <div class="beneficio reveal"><i>✓</i>Conecta más equipos</div>
+          <div class="beneficio reveal retraso-1"><i>✓</i>Planes a tu medida</div>
+          <div class="beneficio reveal retraso-2"><i>✓</i>Conexión estable</div>
+        </div>
+      </div>
+      <div class="centrado"><a href="#planes" class="btn btn-marino">Ver planes</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="accion accion-1">
+      <div class="reveal">
+        <span class="etiqueta">Nuevo cliente</span>
+        <h2>Instala tu internet</h2>
+        <p>Elige día y horario para tu instalación</p>
+        <a href="#solicitar" class="btn btn-turquesa">Solicitar instalación</a>
+      </div>
+    </div>
+    <div class="accion accion-2">
+      <div class="reveal">
+        <span class="etiqueta">Cliente existente</span>
+        <h2>Reporta un problema</h2>
+        <p>Si tienes fallas, lentitud o dudas de facturación</p>
+        <a href="#soporte" class="btn btn-marino">Abrir soporte</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- VISTA 2: PLANES -->
+<main class="vista" id="vista-planes">
+  <header class="cabecera">
+    <h1>Planes de Fibra Óptica</h1>
+    <p>Elige la velocidad ideal para tu hogar</p>
+  </header>
+
+  <section class="seccion">
+    <div class="contenedor">
+      <div class="titulo-seccion reveal">
+        <span class="etiqueta-chica">Alta velocidad</span>
+        <h2>Todos los planes son simétricos</h2>
+      </div>
+
+      <div class="rejilla-planes">
+        <!-- Plan Básico -->
+        <div class="plan reveal">
+          <div>
+            <div class="centrado">
+              <span class="tag">Plan</span>
+              <h3>Básico</h3>
+              <p class="desc">Para el uso diario de tu hogar</p>
+            </div>
+            <div class="vel">
+              <strong class="contador" data-meta="30">0</strong><small>Mbps</small>
+              <div class="barra-vel"><span data-ancho="30"></span></div>
+            </div>
+            <div class="precio centrado">$250<small> / mes</small></div>
+          </div>
+          <a href="#solicitar" class="btn btn-marino" data-plan="Básico 30 Mbps">Agenda tu instalación</a>
+        </div>
+
+        <!-- Plan Estándar (más popular) -->
+        <div class="plan popular reveal retraso-1">
+          <div class="insignia">Más popular</div>
+          <div>
+            <div class="centrado">
+              <span class="tag" style="background:rgba(255,255,255,.1)">Plan</span>
+              <h3>Estándar</h3>
+              <p class="desc">Para familias que comparten la conexión</p>
+            </div>
+            <div class="vel">
+              <strong class="contador" data-meta="50">0</strong><small>Mbps</small>
+              <div class="barra-vel"><span data-ancho="50"></span></div>
+            </div>
+            <div class="precio centrado">$300<small style="color:#cbd5e1"> / mes</small></div>
+          </div>
+          <a href="#solicitar" class="btn btn-turquesa" data-plan="Estándar 50 Mbps">Agenda tu instalación</a>
+        </div>
+
+        <!-- Plan Premium -->
+        <div class="plan reveal retraso-2">
+          <div>
+            <div class="centrado">
+              <span class="tag">Plan</span>
+              <h3>Premium</h3>
+              <p class="desc">Para hogares muy conectados y streaming</p>
+            </div>
+            <div class="vel">
+              <strong class="contador" data-meta="100">0</strong><small>Mbps</small>
+              <div class="barra-vel"><span data-ancho="100"></span></div>
+            </div>
+            <div class="precio centrado">$500<small> / mes</small></div>
+          </div>
+          <a href="#solicitar" class="btn btn-marino" data-plan="Premium 100 Mbps">Agenda tu instalación</a>
+        </div>
+      </div>
+
+      <div class="nota-simetrica reveal">
+        💡 <b>Simétrico</b> significa que tu velocidad de subida es igual a la de bajada: ideal para videollamadas, nube y juegos en línea.
+      </div>
+    </div>
+  </section>
+</main>
+
+<<!-- VISTA: COBERTURA -->
+<main class="vista" id="vista-cobertura">
+  <header class="cabecera">
+    <h1>Zonas de Cobertura</h1>
+    <p>Descubre si nuestra red de fibra óptica llega a tu ubicación</p>
+  </header>
+
+  <section class="seccion">
+    <div class="contenedor">
+
+      <!-- Subir el archivo KML -->
+      <div class="cob-panel reveal">
+        <label class="cob-arrastre" id="cob-arrastre" for="cob-input">
+          <span class="icono">🗺️</span>
+          <h3>Sube tu archivo KML</h3>
+          <p>Arrastra aquí tu archivo o haz clic para elegirlo. Las zonas quedarán delimitadas en el mapa.</p>
+          <div class="cob-archivo" id="cob-archivo"></div>
+          <input type="file" id="cob-input" accept=".kml,application/vnd.google-earth.kml+xml,text/xml" hidden>
+        </label>
+
+        <div class="cob-info">
+          <h3>📍 Zonas cargadas</h3>
+          <ul class="cob-lista" id="cob-lista">
+            <li style="cursor:default"><span class="cob-vacio">Mostrando la zona principal de ejemplo</span></li>
+          </ul>
+          <div class="cob-botones">
+            <button class="cob-btn" id="cob-ejemplo" type="button">⬇ KML de ejemplo</button>
+            <button class="cob-btn" id="cob-limpiar" type="button">🗑 Quitar zonas</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mapa -->
+      <div class="cob-caja reveal">
+        <div id="mapa-cobertura"></div>
+      </div>
+      <p class="cob-consejo">👆 Haz clic en cualquier punto del mapa para saber si esa ubicación tiene cobertura.</p>
+    </div>
+  </section>
+</main>
+<!-- VISTA 4: SOLICITAR INSTALACIÓN -->
+<main class="vista" id="vista-solicitar">
+  <header class="cabecera">
+    <h1>Solicitar Instalación y Servicio</h1>
+    <p>Conoce nuestro proceso y agenda tu visita técnica en minutos</p>
+  </header>
+
+  <section class="seccion">
+    <div class="contenedor">
+
+      <!-- Banner 1: proceso -->
+      <div class="banner banner-1 reveal">
+        <div class="lado lado-1">
+          <span class="peque">¿Cómo es nuestra instalación?</span>
+          <h2>Un proceso seguro, rápido y profesional</h2>
+          <p>Nos encargamos de todo, desde la evaluación técnica hasta la activación inmediata de tu servicio.</p>
+        </div>
+        <div class="caja-blanca">
+          <div class="pasos-proceso">
+            <div class="proceso"><div class="num">1</div><h4>Evaluación del sitio</h4><p>Analizamos la mejor opción (fibra óptica o radiofrecuencia).</p></div>
+            <div class="proceso"><div class="num">2</div><h4>Instalación de equipos</h4><p>Colocamos y configuramos los equipos necesarios.</p></div>
+            <div class="proceso"><div class="num">3</div><h4>Configuración y pruebas</h4><p>Verificamos la calidad de la señal y la velocidad.</p></div>
+            <div class="proceso"><div class="num">4</div><h4>Activación del servicio</h4><p>Realizamos la activación total y soporte inicial.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner 2: formulario por pasos -->
+      <div class="banner banner-2 reveal">
+        <div class="lado lado-2">
+          <span class="peque">Agenda tu servicio</span>
+          <h2>Es muy fácil, en solo unos minutos</h2>
+          <p>Agenda una instalación, cambio de plan o visita técnica.</p>
+        </div>
+
+        <div class="caja-blanca">
+          <div class="indicador" id="indicador">
+            <span class="activo"><b>1</b>Servicio</span>
+            <span><b>2</b>Fecha y hora</span>
+            <span><b>3</b>Datos</span>
+            <span><b>4</b>Confirmación</span>
+          </div>
+
+          <form id="form-instalacion" novalidate>
+            <!-- Paso 1 -->
+            <div class="paso-form activo" data-paso="1">
+              <div class="campo">
+                <label>Tipo de servicio</label>
+                <select id="f-servicio" required>
+                  <option value="">Selecciona un servicio</option>
+                  <option>Nueva Instalación de Fibra Óptica</option>
+                  <option>Cambio de Plan</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label>Plan de interés</label>
+                <select id="f-plan">
+                  <option>Básico 30 Mbps - $250</option>
+                  <option>Estándar 50 Mbps - $300</option>
+                  <option>Premium 100 Mbps - $500</option>
+                </select>
+              </div>
+              <div class="botones-form"><button type="button" class="btn btn-turquesa" data-sig>Continuar →</button></div>
+            </div>
+
+            <!-- Paso 2 -->
+            <div class="paso-form" data-paso="2">
+              <div class="fila-2">
+                <div class="campo"><label>Fecha preferida</label><input type="date" id="f-fecha" required></div>
+                <div class="campo">
+                  <label>Hora</label>
+                  <select id="f-hora" required>
+                    <option value="">Selecciona una hora</option>
+                    <option>9:00 AM - 12:00 PM</option>
+                    <option>3:00 PM - 6:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div class="botones-form">
+                <button type="button" class="btn btn-claro" data-ant>← Atrás</button>
+                <button type="button" class="btn btn-turquesa" data-sig>Continuar →</button>
+              </div>
+            </div>
+
+            <!-- Paso 3 -->
+            <div class="paso-form" data-paso="3">
+              <div class="campo"><label>Nombre completo</label><input type="text" id="f-nombre" placeholder="Tu nombre" required></div>
+              <div class="fila-2">
+                <div class="campo"><label>Teléfono</label><input type="tel" id="f-tel" placeholder="7441234567" required></div>
+                <div class="campo"><label>Colonia o referencia</label><input type="text" id="f-colonia" placeholder="Ej. Col. Centro" required></div>
+              </div>
+              <div class="campo"><label>Dirección completa</label><input type="text" id="f-dir" placeholder="Calle, número..." required></div>
+              <div class="botones-form">
+                <button type="button" class="btn btn-claro" data-ant>← Atrás</button>
+                <button type="button" class="btn btn-turquesa" data-sig>Revisar →</button>
+              </div>
+            </div>
+
+            <!-- Paso 4 -->
+            <div class="paso-form" data-paso="4">
+              <div class="resumen" id="resumen"></div>
+              <div class="botones-form">
+                <button type="button" class="btn btn-claro" data-ant>← Atrás</button>
+                <button type="submit" class="btn btn-marino">Confirmar solicitud</button>
+              </div>
+            </div>
+
+            <!-- Éxito -->
+            <div class="paso-form" data-paso="5">
+              <div class="exito">
+                <div class="check">✓</div>
+                <h3>¡Solicitud recibida!</h3>
+                <p id="texto-exito"></p>
+                <div class="botones-form" style="justify-content:center"><button type="button" class="btn btn-turquesa" id="btn-nueva">Hacer otra solicitud</button></div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="contacto-lado">
+          <div><h4>¿Prefieres hablar con nosotros?</h4><p>Llámanos o escríbenos.</p></div>
+          <div class="dato">📞 800-000-0000</div>
+          <div class="dato">✉️ contacto@enlanet.mx</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- VISTA 5: SOPORTE -->
+<main class="vista" id="vista-soporte">
+  <header class="cabecera">
+    <h1>Centro de Soporte Técnico</h1>
+    <p>Verifica tus datos de servicio y crea un ticket para recibir asistencia inmediata</p>
+  </header>
+
+  <section class="seccion">
+    <div class="contenedor" style="max-width:860px">
+
+      <!-- Verificación de cliente -->
+      <div class="tarjeta reveal">
+        <div class="encabezado">
+          <span class="etq">Verificación de cliente</span>
+          <h2>Valida tus datos de servicio</h2>
+          <p>Ingresa los datos que se te proporcionaron al contratar:</p>
+        </div>
+        <form id="form-verificar">
+          <div class="fila-3">
+            <div class="campo"><label>ID de usuario</label><input type="text" placeholder="Ej. 0082" required></div>
+            <div class="campo"><label>Etiqueta</label><input type="text" placeholder="Ej. 006027" required></div>
+            <div class="campo"><label>Número telefónico</label><input type="tel" placeholder="Ej. 7441234567" required></div>
+          </div>
+          <div class="centrado"><button class="btn btn-marino" type="submit">Verificar identidad</button></div>
+          <div class="verificado" id="verificado">✅ ¡Verificación exitosa! Ya puedes llenar tu ticket de soporte.</div>
+        </form>
+      </div>
+
+      <!-- Crear ticket -->
+      <div class="tarjeta reveal" id="tarjeta-ticket">
+        <div class="encabezado">
+          <h2>Crear ticket de soporte</h2>
+          <p>Completa el formulario con los detalles de tu requerimiento</p>
+        </div>
+        <form id="form-ticket">
+          <div class="fila-2">
+            <div class="campo"><label>Nombre completo</label><input type="text" placeholder="Nombre" required></div>
+            <div class="campo"><label>Correo electrónico</label><input type="email" placeholder="E-Mail" required></div>
+          </div>
+          <div class="fila-2">
+            <div class="campo"><label>Número de servicio</label><input type="text" placeholder="Servicio" required></div>
+            <div class="campo">
+              <label>Categoría</label>
+              <select required>
+                <option value="">Categoría</option>
+                <option>Falla de Conexión / Sin Internet</option>
+                <option>Lentitud en la Red</option>
+                <option>Dudas de Facturación o Pago</option>
+                <option>Cambio de Domicilio / Reubicación</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo"><label>Mensaje</label><textarea rows="5" placeholder="Cuéntanos qué está pasando" required></textarea></div>
+          <button class="btn btn-marino" type="submit" style="width:100%">Enviar ticket</button>
+        </form>
+      </div>
+
+      <!-- Preguntas frecuentes -->
+      <div class="titulo-seccion reveal" style="margin-bottom:20px"><h2 style="font-size:1.4rem">Preguntas frecuentes</h2></div>
+      <div class="faq reveal">
+        <details><summary>Mi internet va lento, ¿qué hago primero?</summary><p>Reinicia tu módem desconectándolo 30 segundos, y prueba con un equipo conectado por cable. Si sigue lento, crea un ticket en la categoría "Lentitud en la Red".</p></details>
+        <details><summary>¿Cuánto tarda la instalación?</summary><p>Una vez agendada tu visita, el técnico evalúa el sitio, instala y activa el servicio en la misma visita.</p></details>
+        <details><summary>¿Puedo cambiar de plan?</summary><p>Sí. En "Solicitar instalación" elige la opción "Cambio de Plan" y agenda el cambio.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- PIE DE PÁGINA -->
+<footer>
+  <div class="contenedor">
+    <div class="pie-rejilla">
+      <div>
+        <svg viewBox="0 0 280 80" fill="none" style="height:40px;width:auto;margin-bottom:12px">
+          <path d="M 12 52 L 28 32 L 36 40 L 20 60 Z" fill="#fff"/>
+          <path d="M 28 20 L 44 40 L 36 48 L 20 28 Z" fill="#fff"/>
+          <text x="52" y="58" font-family="Poppins, sans-serif" font-size="44" font-weight="700" fill="#fff" letter-spacing="-1">enlanet</text>
+          <text x="185" y="24" font-family="Poppins, sans-serif" font-size="16" font-weight="600" fill="#fff">Internet</text>
+        </svg>
+        <p style="font-size:.75rem;color:#cbd5e1">Internet de fibra óptica para tu hogar</p>
+      </div>
+      <div>
+        <h4>Servicio</h4>
+        <ul>
+          <li><a href="#planes">Planes</a></li>
+          <li><a href="#cobertura">Cobertura</a></li>
+          <li><a href="#solicitar">Agenda tu instalación</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Soporte</h4>
+        <ul><li><a href="#soporte">Realiza un reporte</a></li></ul>
+      </div>
+      <div>
+        <h4>Contacto</h4>
+        <ul><li>Teléfono: 800-000-0000</li><li>Correo: contacto@enlanet.mx</li></ul>
+      </div>
+    </div>
+    <p class="legal">© 2026 Enlaces Seguros y Eficientes de México S.A.S. de C.V.</p>
+  </div>
+</footer>
+
+<button id="subir" aria-label="Volver arriba">↑</button>
+
+<!-- VENTANA DEL CHAT -->
+<div id="chat-ventana" role="dialog" aria-label="Chat de Enlanet">
+  <div class="chat-cab">
+    <div class="quien">
+      <div class="avatar">
+        <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a4 4 0 0 1 4 4v3h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v-3a4 4 0 0 1 4-4h1V5.73C10.4 5.39 10 4.74 10 4a2 2 0 0 1 2-2M9 11a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1m6 0a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1m-3 4a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3Z"/></svg>
+      </div>
+      <div><h3>En línea</h3><small>Disponible ahora</small></div>
+    </div>
+    <button id="cerrar-chat" aria-label="Cerrar chat">×</button>
+  </div>
+  <div id="chat-cuerpo"></div>
+  <div class="chat-pie">
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="Escribe un mensaje..." autocomplete="off">
+      <button type="submit">Enviar</button>
+    </form>
+  </div>
+</div>
+
+<!-- BOTÓN FLOTANTE DEL CHAT -->
+<div id="chat-flotante">
+  <div class="globo" id="globo">
+    Hola, ¿en qué te ayudo?
+    <button class="x" id="cerrar-globo" aria-label="Cerrar">×</button>
+  </div>
+  <div class="boton-bot">
+    <button class="circulo" id="abrir-chat" aria-label="Abrir chat">
+      <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a4 4 0 0 1 4 4v3h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v-3a4 4 0 0 1 4-4h1V5.73C10.4 5.39 10 4.74 10 4a2 2 0 0 1 2-2M9 11a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1m6 0a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1m-3 4a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3Z"/></svg>
+    </button>
+    <span class="aviso" id="aviso-chat">1</span>
+  </div>
+</div>
+
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* AQUÍ VA LA PARTE 8 (JavaScript) */
+    /* ========== ATAJOS ========== */
+const $  = (sel, ctx = document) => ctx.querySelector(sel);
+const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+
+/* ========== 1. AVISOS EMERGENTES ========== */
+function aviso(texto, tipo = 'ok') {
+  const t = document.createElement('div');
+  t.className = 'aviso-toast' + (tipo === 'error' ? ' error' : '');
+  t.textContent = texto;
+  $('#avisos').appendChild(t);
+  setTimeout(() => {
+    t.classList.add('saliendo');
+    setTimeout(() => t.remove(), 400);
+  }, 4000);
+}
+
+
+/* ========== 2. NAVEGACIÓN ENTRE SECCIONES (una sola pestaña) ========== */
+const VISTAS = ['inicio', 'planes', 'cobertura', 'solicitar', 'soporte'];
+let mapa = null;
+
+function irA(nombre) {
+  if (!VISTAS.includes(nombre)) nombre = 'inicio';
+
+  $$('.vista').forEach(v => v.classList.remove('activa'));
+  $('#vista-' + nombre).classList.add('activa');
+
+  $$('.menu a').forEach(a => a.classList.toggle('activo', a.dataset.link === nombre));
+
+  $('#menu').classList.remove('abierto');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  activarReveal();
+
+  if (nombre === 'cobertura') {
+    iniciarMapa();
+    setTimeout(() => mapa && mapa.invalidateSize(), 250);
+  }
+  if (nombre === 'planes') animarPlanes();
+}
+
+document.addEventListener('click', (e) => {
+  const enlace = e.target.closest('a[href^="#"]');
+  if (!enlace) return;
+  e.preventDefault();
+  const destino = enlace.getAttribute('href').slice(1);
+
+  // Si es un botón de plan, dejamos ese plan seleccionado en el formulario
+  if (enlace.dataset.plan) {
+    const sel = $('#f-plan');
+    [...sel.options].forEach(o => { if (o.text.startsWith(enlace.dataset.plan.split(' ')[0])) sel.value = o.text; });
+  }
+
+  history.pushState(null, '', '#' + destino);
+  irA(destino);
+});
+
+window.addEventListener('popstate', () => irA(location.hash.slice(1) || 'inicio'));
+
+$('#btn-menu').addEventListener('click', () => $('#menu').classList.toggle('abierto'));
+
+
+/* ========== 3. EFECTOS DE SCROLL ========== */
+window.addEventListener('scroll', () => {
+  const alto = document.documentElement.scrollHeight - window.innerHeight;
+  const porcentaje = alto > 0 ? (window.scrollY / alto) * 100 : 0;
+  $('#barra-scroll').style.width = porcentaje + '%';
+  $('#barra').classList.toggle('con-sombra', window.scrollY > 10);
+  $('#subir').classList.toggle('ver', window.scrollY > 500);
+});
+$('#subir').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+
+/* ========== 4. APARICIÓN AL HACER SCROLL ========== */
+const observador = new IntersectionObserver((entradas) => {
+  entradas.forEach(en => {
+    if (en.isIntersecting) {
+      en.target.classList.add('visible');
+      observador.unobserve(en.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+function activarReveal() {
+  $$('.vista.activa .reveal').forEach(el => {
+    el.classList.remove('visible');
+    observador.observe(el);
+  });
+}
+
+
+/* ========== 5. EFECTO RIPPLE EN BOTONES ========== */
+document.addEventListener('click', (e) => {
+  const boton = e.target.closest('.btn');
+  if (!boton) return;
+  const rect = boton.getBoundingClientRect();
+  const tam = Math.max(rect.width, rect.height);
+  const onda = document.createElement('span');
+  onda.className = 'ripple';
+  onda.style.width = onda.style.height = tam + 'px';
+  onda.style.left = (e.clientX - rect.left - tam / 2) + 'px';
+  onda.style.top  = (e.clientY - rect.top  - tam / 2) + 'px';
+  boton.appendChild(onda);
+  setTimeout(() => onda.remove(), 600);
+});
+
+
+/* ========== 6. MÁQUINA DE ESCRIBIR EN EL HERO ========== */
+(function maquinaDeEscribir() {
+  const frases = ['cercano', 'profesional', 'confiable', 'las 24 horas'];
+  const caja = $('#maquina');
+  let f = 0, c = 0, borrando = false;
+
+  function paso() {
+    const frase = frases[f];
+    caja.textContent = frase.slice(0, c);
+    if (!borrando && c < frase.length) { c++; setTimeout(paso, 110); }
+    else if (!borrando) { borrando = true; setTimeout(paso, 1600); }
+    else if (c > 0) { c--; setTimeout(paso, 55); }
+    else { borrando = false; f = (f + 1) % frases.length; setTimeout(paso, 300); }
+  }
+  paso();
+})();
+
+
+/* ========== 7. PLANES: contadores y barras ========== */
+function animarPlanes() {
+  $$('.contador').forEach(el => {
+    const meta = +el.dataset.meta;
+    const duracion = 1400;
+    const inicio = performance.now();
+    function frame(ahora) {
+      const p = Math.min((ahora - inicio) / duracion, 1);
+      const suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(meta * suave);
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  });
+  $$('.barra-vel span').forEach(b => {
+    b.style.width = '0';
+    setTimeout(() => b.style.width = b.dataset.ancho + '%', 150);
+  });
+}
+
+// Efecto 3D suave al mover el mouse sobre cada plan
+$$('.plan').forEach(tarjeta => {
+  tarjeta.addEventListener('mousemove', (e) => {
+    const r = tarjeta.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    tarjeta.style.transform = `translateY(-12px) perspective(800px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg)`;
+  });
+  tarjeta.addEventListener('mouseleave', () => tarjeta.style.transform = '');
+});
+
+
+/* =========================================================
+   COBERTURA: MAPA + ARCHIVO KML
+   ========================================================= */
+const CENTRO = [16.8531, -99.8237];   // Centro inicial del mapa (Acapulco)
+const RADIO_DEMO = 3500;              // Radio del círculo de ejemplo, en metros
+
+let map = null;          // El mapa de Leaflet
+let capaDemo = null;      // Círculo de ejemplo (se oculta al subir un KML)
+let capaZonas = null;     // Aquí viven todas las zonas del KML
+let marcadorClic = null;  // Marcador que aparece donde haces clic
+let poligonos = [];       // Polígonos guardados para saber si un punto cae dentro
+
+// Atajos (si tu página ya tiene la función aviso() la usa; si no, usa alert)
+const cob = (id) => document.getElementById(id);
+const cobAviso = (texto, tipo) => (typeof aviso === 'function') ? aviso(texto, tipo) : alert(texto);
+
+
+/* ---------- 1. Crear el mapa (solo la primera vez) ---------- */
+function iniciarMapa() {
+  if (mapa) return;
+
+  mapa = L.map('mapa-cobertura', { zoomControl: true, scrollWheelZoom: true }).setView(CENTRO, 13);
+
+    /* ---- Capas del mapa (gratuitas, sin llave) ---- */
+
+  // Vista de calles: nombres de calles, colonias, negocios, etc.
+  const capaCalles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(mapa);   // esta es la que se ve por defecto
+
+  // Vista satélite con nombres de calles y lugares encima
+  const capaSatelite = L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19, attribution: 'Imágenes &copy; Esri'
+    }),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19
+    })
+  ]);
+
+  // Botón arriba a la derecha para cambiar entre calles y satélite
+  L.control.layers({
+    '🗺️ Calles': capaCalles,
+    '🛰️ Satélite': capaSatelite
+  }, null, { position: 'topright', collapsed: false }).addTo(mapa);
+
+  L.control.scale({ imperial: false }).addTo(mapa);   // regla de escala en metros/km
+
+  // Leyenda pequeña abajo a la izquierda
+  const leyenda = L.control({ position: 'bottomleft' });
+  leyenda.onAdd = () => {
+    const d = L.DomUtil.create('div', 'cob-leyenda');
+    d.innerHTML = '<i></i> Zona con cobertura';
+    return d;
+  };
+  leyenda.addTo(mapa);
+
+  capaZonas = L.featureGroup().addTo(mapa);
+
+  // Zona de ejemplo: desaparece cuando subes un KML
+  capaDemo = L.circle(CENTRO, {
+    color: '#093D65', weight: 3, fillColor: '#1DA8C1', fillOpacity: 0.35, radius: RADIO_DEMO
+  }).addTo(mapa).bindPopup('<b>Enlanet - Zona de Cobertura Principal</b><br>¡Fibra óptica disponible!');
+
+  // Al hacer clic revisamos si ese punto tiene cobertura
+  mapa.on('click', (e) => revisarCobertura(e.latlng));
+
+  // Si el contenedor cambia de tamaño (por ejemplo al mostrar la sección),
+  // el mapa se reajusta solo y nunca se ve cortado o gris
+  new ResizeObserver(() => mapa.invalidateSize()).observe(cob('mapa-cobertura'));
+}
+
+
+/* ---------- 2. Leer el KML ---------- */
+
+// Busca etiquetas del KML aunque traigan prefijos (Google Earth, QGIS, ArcGIS...)
+function porTag(elemento, nombre) {
+  return [...elemento.getElementsByTagNameNS('*', nombre)];
+}
+
+// El KML guarda "longitud,latitud,altura" y Leaflet necesita [latitud, longitud].
+// También entiende cuando vienen espacios: "lon, lat, alt"
+function leerCoordenadas(texto) {
+  return texto.replace(/\s*,\s*/g, ',').trim().split(/\s+/).map(par => {
+    const [lon, lat] = par.split(',').map(Number);
+    return [lat, lon];
+  }).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+}
+
+function procesarKML(contenido, nombreArchivo) {
+  // Quitamos caracteres invisibles al inicio que algunos programas agregan
+  const xml = new DOMParser().parseFromString(contenido.replace(/^\uFEFF/, '').trim(), 'text/xml');
+
+  if (xml.getElementsByTagName('parsererror').length) {
+    cobAviso('El archivo no es un KML válido 😕', 'error');
+    return;
+  }
+
+  limpiarZonas(false);   // borramos lo anterior sin avisar
+
+  const lugares = porTag(xml, 'Placemark');   // cada "Placemark" es un lugar del KML
+  const elementos = [];                       // lo que se mostrará en la lista
+  let totalPoligonos = 0;
+  let contador = 0;
+
+  for (const lugar of lugares) {
+    contador++;
+    const nombreTag = porTag(lugar, 'name')[0];
+    const nombre = nombreTag ? nombreTag.textContent.trim() : 'Zona ' + contador;
+    const descTag = porTag(lugar, 'description')[0];
+    const descripcion = descTag ? descTag.textContent.trim() : '';
+    const capasDelLugar = [];
+
+    // --- Polígonos: aquí se delimitan las zonas de cobertura ---
+    for (const poli of porTag(lugar, 'Polygon')) {
+      const exterior = porTag(poli, 'outerBoundaryIs')[0];
+      const coordsEl = porTag(exterior || poli, 'coordinates')[0];
+      if (!coordsEl) continue;
+
+      const anillo = leerCoordenadas(coordsEl.textContent);
+      if (anillo.length < 3) continue;   // un polígono necesita mínimo 3 puntos
+
+      // Huecos interiores (partes dentro de la zona donde NO hay cobertura)
+      const huecos = porTag(poli, 'innerBoundaryIs')
+        .map(h => porTag(h, 'coordinates')[0])
+        .filter(Boolean)
+        .map(c => leerCoordenadas(c.textContent));
+
+      // Contorno azul marino grueso + relleno turquesa semitransparente
+      const capa = L.polygon([anillo, ...huecos], {
+        color: '#093D65', weight: 3, opacity: 1,
+        fillColor: '#1DA8C1', fillOpacity: 0.35
+      });
+      poligonos.push({ anillo, huecos, nombre });
+      capasDelLugar.push(capa);
+      totalPoligonos++;
+    }
+
+    // --- Líneas (por si el KML trae rutas de fibra) ---
+    for (const linea of porTag(lugar, 'LineString')) {
+      const coordsEl = porTag(linea, 'coordinates')[0];
+      if (!coordsEl) continue;
+      const puntos = leerCoordenadas(coordsEl.textContent);
+      if (puntos.length > 1) capasDelLugar.push(L.polyline(puntos, { color: '#1DA8C1', weight: 4 }));
+    }
+
+    // --- Puntos (nodos, oficinas, etc.) ---
+    for (const punto of porTag(lugar, 'Point')) {
+      const coordsEl = porTag(punto, 'coordinates')[0];
+      if (!coordsEl) continue;
+      const [p] = leerCoordenadas(coordsEl.textContent);
+      if (p) capasDelLugar.push(L.circleMarker(p, {
+        radius: 8, color: '#093D65', fillColor: '#1DA8C1', fillOpacity: 1, weight: 2
+      }));
+    }
+
+    // Nombre al pasar el mouse y ventanita al hacer clic
+    capasDelLugar.forEach(c => {
+      c.bindTooltip(nombre, { sticky: true });
+      c.bindPopup(`<b>${nombre}</b>${descripcion ? '<br>' + descripcion : ''}<br>✅ Zona con cobertura`);
+      c.addTo(capaZonas);
+      elementos.push({ capa: c, nombre });
+    });
+  }
+
+  if (!elementos.length) {
+    cobAviso('No encontré zonas, líneas ni puntos dentro del archivo 🤔', 'error');
+    return;
+  }
+
+  // Quitamos el círculo de ejemplo para que solo se vean las zonas del KML
+  if (capaDemo && mapa.hasLayer(capaDemo)) mapa.removeLayer(capaDemo);
+
+  // Bajamos hasta el mapa y lo enfocamos en las zonas.
+  // El pequeño retraso deja que el mapa tome su tamaño real antes de acercarse.
+  cob('mapa-cobertura').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => {
+    mapa.invalidateSize();
+    const limites = capaZonas.getBounds();
+    if (limites.isValid()) mapa.fitBounds(limites, { padding: [40, 40], maxZoom: 17 });
+  }, 200);
+
+  pintarLista(elementos);
+  cob('cob-archivo').textContent = '📄 ' + nombreArchivo;
+  cobAviso(`¡Listo! ${totalPoligonos} zona(s) delimitada(s) en el mapa ✅`);
+}
+
+
+/* ---------- 3. Lista de zonas (al hacer clic, el mapa se acerca) ---------- */
+function pintarLista(items) {
+  const ul = cob('cob-lista');
+  ul.innerHTML = '';
+  items.forEach(({ capa, nombre }) => {
+    const li = document.createElement('li');
+    li.textContent = nombre;
+    li.addEventListener('click', () => {
+      if (capa.getBounds) mapa.flyToBounds(capa.getBounds(), { padding: [40, 40], duration: 1 });
+      else mapa.flyTo(capa.getLatLng(), 17, { duration: 1 });
+      capa.openPopup();
+    });
+    ul.appendChild(li);
+  });
+}
+
+
+/* ---------- 4. Quitar las zonas y volver al ejemplo ---------- */
+function limpiarZonas(conAviso = true) {
+  if (!mapa) return;
+  capaZonas.clearLayers();
+  poligonos = [];
+  if (marcadorClic) { mapa.removeLayer(marcadorClic); marcadorClic = null; }
+  if (!mapa.hasLayer(capaDemo)) capaDemo.addTo(mapa);
+  cob('cob-lista').innerHTML = '<li style="cursor:default"><span class="cob-vacio">Mostrando la zona principal de ejemplo</span></li>';
+  cob('cob-archivo').textContent = '';
+  cob('cob-input').value = '';
+  if (conAviso) { mapa.setView(CENTRO, 13); cobAviso('Zonas eliminadas'); }
+}
+
+
+/* ---------- 5. ¿El punto donde hice clic tiene cobertura? ----------
+   Método del "rayo": se lanza una línea imaginaria desde el punto y se
+   cuenta cuántas veces cruza el borde. Si son impares, está adentro. */
+function puntoEnAnillo(lat, lon, anillo) {
+  let dentro = false;
+  for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+    const [yi, xi] = anillo[i], [yj, xj] = anillo[j];
+    if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) dentro = !dentro;
+  }
+  return dentro;
+}
+
+function revisarCobertura(latlng) {
+  let zona = null;
+
+  if (poligonos.length) {
+    // Con KML: revisamos cada polígono (y que no caiga en un hueco)
+    zona = poligonos.find(p =>
+      puntoEnAnillo(latlng.lat, latlng.lng, p.anillo) &&
+      !p.huecos.some(h => puntoEnAnillo(latlng.lat, latlng.lng, h))
+    );
+  } else if (mapa.hasLayer(capaDemo)) {
+    // Sin KML: usamos el círculo de ejemplo
+    if (latlng.distanceTo(CENTRO) <= RADIO_DEMO) zona = { nombre: 'Zona principal' };
+  } else {
+    return;   // hay un KML sin polígonos (solo líneas/puntos): no hay nada que revisar
+  }
+
+  if (marcadorClic) mapa.removeLayer(marcadorClic);
+  marcadorClic = L.marker(latlng, {
+    icon: L.divIcon({ className: '', html: '<div class="cob-pulso"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
+  }).addTo(mapa);
+
+  marcadorClic.bindPopup(zona
+    ? `✅ <b>¡Sí hay cobertura!</b><br>${zona.nombre}`
+    : '❌ <b>Aún no llegamos aquí</b><br>Déjanos tus datos y te avisamos.'
+  ).openPopup();
+}
+
+
+/* ---------- 6. Subir el archivo (clic o arrastrar y soltar) ---------- */
+function leerArchivo(archivo) {
+  if (!archivo) return;
+  if (!archivo.name.toLowerCase().endsWith('.kml')) {
+    cobAviso('Solo se aceptan archivos .kml (si es .kmz, descomprímelo primero)', 'error');
+    return;
+  }
+  iniciarMapa();   // por si el mapa todavía no existe
+  const lector = new FileReader();
+  lector.onload = () => procesarKML(lector.result, archivo.name);
+  lector.onerror = () => cobAviso('No pude leer el archivo', 'error');
+  lector.readAsText(archivo);
+}
+
+cob('cob-input').addEventListener('change', (e) => leerArchivo(e.target.files[0]));
+
+const cobZona = cob('cob-arrastre');
+['dragenter', 'dragover'].forEach(ev => cobZona.addEventListener(ev, (e) => {
+  e.preventDefault(); cobZona.classList.add('arrastrando');
+}));
+['dragleave', 'drop'].forEach(ev => cobZona.addEventListener(ev, (e) => {
+  e.preventDefault(); cobZona.classList.remove('arrastrando');
+}));
+cobZona.addEventListener('drop', (e) => leerArchivo(e.dataTransfer.files[0]));
+
+cob('cob-limpiar').addEventListener('click', () => limpiarZonas(true));
+
+
+/* ---------- 7. KML de ejemplo para probar rápido ---------- */
+cob('cob-ejemplo').addEventListener('click', () => {
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Zona Centro (ejemplo)</name>
+      <description>Cobertura de fibra óptica</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        -99.8400,16.8650,0 -99.8100,16.8650,0 -99.8050,16.8450,0 -99.8300,16.8400,0 -99.8400,16.8650,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>Zona Costera (ejemplo)</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        -99.8000,16.8700,0 -99.7800,16.8700,0 -99.7800,16.8550,0 -99.8000,16.8550,0 -99.8000,16.8700,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>`;
+  const url = URL.createObjectURL(new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'enlanet-ejemplo.kml';
+  a.click();
+  URL.revokeObjectURL(url);
+  cobAviso('Descargando KML de ejemplo. ¡Súbelo para probar!');
+});
+
+/* ========== 9. FORMULARIO DE INSTALACIÓN POR PASOS ========== */
+let pasoActual = 1;
+
+$('#f-fecha').min = new Date().toISOString().split('T')[0];
+
+function mostrarPaso(n) {
+  pasoActual = n;
+  $$('.paso-form').forEach(p => p.classList.toggle('activo', +p.dataset.paso === n));
+  $$('#indicador span').forEach((s, i) => {
+    s.classList.toggle('activo', i + 1 === n);
+    s.classList.toggle('hecho', i + 1 < n);
+  });
+  if (n === 4) llenarResumen();
+}
+
+function validarPaso(n) {
+  let bien = true;
+  $$(`.paso-form[data-paso="${n}"] [required]`).forEach(campo => {
+    const vacio = !campo.value.trim();
+    campo.closest('.campo').classList.toggle('error', vacio);
+    if (vacio) bien = false;
+  });
+  if (!bien) aviso('Completa los campos marcados en rojo', 'error');
+  return bien;
+}
+
+$$('[data-sig]').forEach(b => b.addEventListener('click', () => {
+  if (validarPaso(pasoActual)) mostrarPaso(pasoActual + 1);
+}));
+$$('[data-ant]').forEach(b => b.addEventListener('click', () => mostrarPaso(pasoActual - 1)));
+
+$$('.campo input, .campo select, .campo textarea').forEach(c =>
+  c.addEventListener('input', () => c.closest('.campo').classList.remove('error')));
+
+function llenarResumen() {
+  $('#resumen').innerHTML = `
+    <b>Servicio:</b> ${$('#f-servicio').value}<br>
+    <b>Plan:</b> ${$('#f-plan').value}<br>
+    <b>Fecha:</b> ${$('#f-fecha').value} · ${$('#f-hora').value}<br>
+    <b>Nombre:</b> ${$('#f-nombre').value}<br>
+    <b>Teléfono:</b> ${$('#f-tel').value}<br>
+    <b>Dirección:</b> ${$('#f-dir').value}, ${$('#f-colonia').value}`;
+}
+
+$('#form-instalacion').addEventListener('submit', (e) => {
+  e.preventDefault();
+  $('#texto-exito').textContent = `Gracias, ${$('#f-nombre').value.split(' ')[0]}. Te contactaremos al ${$('#f-tel').value} para confirmar tu visita.`;
+  mostrarPaso(5);
+  $$('#indicador span').forEach(s => s.classList.add('hecho'));
+  lanzarConfeti();
+});
+
+$('#btn-nueva').addEventListener('click', () => {
+  $('#form-instalacion').reset();
+  mostrarPaso(1);
+});
+
+function lanzarConfeti() {
+  const colores = ['#1DA8C1', '#093D65', '#62C6D5', '#95D2D2', '#FEF8E9'];
+  for (let i = 0; i < 70; i++) {
+    const c = document.createElement('i');
+    c.style.cssText = `position:fixed;top:-10px;left:${Math.random() * 100}vw;width:${6 + Math.random() * 6}px;height:${10 + Math.random() * 8}px;
+      background:${colores[i % colores.length]};z-index:300;pointer-events:none;border-radius:2px;opacity:.95`;
+    document.body.appendChild(c);
+    c.animate([
+      { transform: 'translateY(0) rotate(0)', opacity: 1 },
+      { transform: `translate(${(Math.random() - .5) * 200}px, 105vh) rotate(${Math.random() * 720}deg)`, opacity: .7 }
+    ], { duration: 1800 + Math.random() * 1600, easing: 'cubic-bezier(.3,.6,.4,1)' }).onfinish = () => c.remove();
+  }
+}
+
+
+/* ========== 10. SOPORTE ========== */
+$('#form-verificar').addEventListener('submit', (e) => {
+  e.preventDefault();
+  $('#verificado').style.display = 'block';
+  aviso('¡Verificación exitosa!');
+  $('#tarjeta-ticket').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+$('#form-ticket').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const folio = 'ENL-' + Math.floor(100000 + Math.random() * 900000);
+  aviso(`🎫 Ticket ${folio} creado. Nos pondremos en contacto contigo.`);
+  e.target.reset();
+});
+
+
+/* ========== 11. CHAT DEL ASISTENTE ========== */
+const cuerpoChat = $('#chat-cuerpo');
+let chatIniciado = false;
+
+function mensaje(texto, quien = 'bot') {
+  const m = document.createElement('div');
+  m.className = 'msg ' + quien;
+  m.innerHTML = texto;
+  cuerpoChat.appendChild(m);
+  cuerpoChat.scrollTop = cuerpoChat.scrollHeight;
+  return m;
+}
+
+function opciones(lista) {
+  const caja = document.createElement('div');
+  caja.className = 'opciones';
+  lista.forEach(([texto, accion]) => {
+    const b = document.createElement('button');
+    b.textContent = texto;
+    b.addEventListener('click', () => { mensaje(texto, 'yo'); responder(accion); });
+    caja.appendChild(b);
+  });
+  cuerpoChat.appendChild(caja);
+  cuerpoChat.scrollTop = cuerpoChat.scrollHeight;
+}
+
+const MENU_CHAT = [
+  ['Contratar servicio de fibra óptica', 'contratar'],
+  ['Soporte técnico', 'soporte'],
+  ['Pagos', 'pagos'],
+  ['Paquetes disponibles', 'planes'],
+  ['Zona de cobertura', 'cobertura']
+];
+
+function botEscribe(callback) {
+  const t = document.createElement('div');
+  t.className = 'msg bot escribiendo';
+  t.innerHTML = '<i></i><i></i><i></i>';
+  cuerpoChat.appendChild(t);
+  cuerpoChat.scrollTop = cuerpoChat.scrollHeight;
+  setTimeout(() => { t.remove(); callback(); }, 800);
+}
+
+function responder(clave) {
+  botEscribe(() => {
+    switch (clave) {
+      case 'contratar':
+        mensaje('¡Genial! 🎉 Te llevo a la sección para agendar tu instalación.');
+        setTimeout(() => navegar('solicitar'), 900); break;
+      case 'soporte':
+        mensaje('Lamentamos los inconvenientes 🛠️ Te llevo al centro de soporte para crear tu ticket.');
+        setTimeout(() => navegar('soporte'), 900); break;
+      case 'pagos':
+        mensaje('Para dudas de pagos o facturación crea un ticket en la categoría <b>"Dudas de Facturación o Pago"</b> o llama al 800-000-0000.');
+        opciones([['Ir a soporte', 'soporte'], ['Volver al menú', 'menu']]); break;
+      case 'planes':
+        mensaje('Tenemos 3 planes simétricos: <b>30 Mbps ($250)</b>, <b>50 Mbps ($300)</b> y <b>100 Mbps ($500)</b>. 🚀');
+        opciones([['Ver planes', 'irplanes'], ['Volver al menú', 'menu']]); break;
+      case 'irplanes':
+        mensaje('¡Vamos!'); setTimeout(() => navegar('planes'), 700); break;
+      case 'cobertura':
+        mensaje('Te muestro el mapa 🗺️ Ahí puedes hacer clic en tu ubicación para ver si hay fibra.');
+        setTimeout(() => navegar('cobertura'), 900); break;
+      case 'menu':
+        mensaje('¿En qué más te puedo ayudar?'); opciones(MENU_CHAT); break;
+      default:
+        mensaje('No estoy seguro de haber entendido 🤔 Elige una opción:'); opciones(MENU_CHAT);
+    }
+  });
+}
+
+function navegar(vista) {
+  history.pushState(null, '', '#' + vista);
+  irA(vista);
+  cerrarChat();
+}
+
+function abrirChat() {
+  $('#chat-ventana').classList.add('abierto');
+  $('#aviso-chat').style.display = 'none';
+  $('#globo').style.display = 'none';
+  if (!chatIniciado) {
+    chatIniciado = true;
+    botEscribe(() => {
+      mensaje('¡Hola! 👋 ¡Te damos la bienvenida a <strong>Enlanet</strong>! Para brindarte la atención que te mereces, elige la opción que deseas:');
+      opciones(MENU_CHAT);
+    });
+  }
+}
+function cerrarChat() { $('#chat-ventana').classList.remove('abierto'); }
+
+$('#abrir-chat').addEventListener('click', () => $('#chat-ventana').classList.contains('abierto') ? cerrarChat() : abrirChat());
+$('#globo').addEventListener('click', abrirChat);
+$('#cerrar-globo').addEventListener('click', (e) => { e.stopPropagation(); $('#globo').style.display = 'none'; });
+$('#cerrar-chat').addEventListener('click', cerrarChat);
+
+$('#chat-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const texto = $('#chat-input').value.trim();
+  if (!texto) return;
+  mensaje(texto, 'yo');
+  $('#chat-input').value = '';
+  const t = texto.toLowerCase();
+  if (/contrat|instal|servicio nuevo/.test(t)) responder('contratar');
+  else if (/soporte|falla|lent|ayuda|problema|ticket/.test(t)) responder('soporte');
+  else if (/pago|pagar|factur|cobro/.test(t)) responder('pagos');
+  else if (/plan|paquete|precio|costo|mbps/.test(t)) responder('planes');
+  else if (/cobertura|zona|mapa|llega/.test(t)) responder('cobertura');
+  else responder('otro');
+});
+
+
+/* ========== 12. ARRANQUE ========== */
+irA(location.hash.slice(1) || 'inicio');
+    
+  </script>
+</body>
+</html>
